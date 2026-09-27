@@ -72,9 +72,19 @@ async def addcode_get_name(message: Message, state: FSMContext) -> None:
     await message.answer("Отправьте фото-обложку для карточки фильма:")
 
 
-@router.message(AddCodeStates.waiting_photo, F.photo)
+@router.message(AddCodeStates.waiting_photo, F.photo | F.document)
 async def addcode_get_photo(message: Message, state: FSMContext) -> None:
-    await state.update_data(photo_file_id=message.photo[-1].file_id)
+    if message.photo:
+        photo_file_id = message.photo[-1].file_id
+    elif message.document and (message.document.mime_type or "").startswith("image/"):
+        photo_file_id = message.document.file_id
+    else:
+        await message.answer(
+            "⚠️ Нужно фото (можно отправить и как файл-изображение). Отправьте обложку:"
+        )
+        return
+
+    await state.update_data(photo_file_id=photo_file_id)
     await state.set_state(AddCodeStates.waiting_film)
     await message.answer(
         "Отправьте видео (сам фильм) — оно будет отправляться по кнопке «🍿 KO'RISH 🎬»:"
